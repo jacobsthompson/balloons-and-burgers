@@ -1,0 +1,14 @@
+body { margin:0; font-family:sans-serif; }
+#map { width:100vw; height:100vh; }
+#balloon-details {
+  position:absolute;
+  top:10px;
+  left:10px;
+  background:white;
+  padding:10px;
+  border-radius:6px;
+  z-index:10;
+  max-width:300px;
+  font-size:14px;
+  white-space: pre-wrap;
+}
