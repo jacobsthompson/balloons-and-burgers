@@ -11,13 +11,12 @@ const map = new maplibregl.Map({
 
 let balloonTracks = {};
 let markers = [];
-const MAX_BALLOONS = 100; // optional limit for testing
+const MAX_BALLOONS = 50; // limit for testing
 
 // ---------------- Start ----------------
 async function init() {
   await loadData();
-  // Refresh every 5 minutes
-  setInterval(loadData, 5 * 60 * 1000);
+  setInterval(loadData, 5 * 60 * 1000); // refresh every 5 min
 }
 
 // ---------------- Load Data ----------------
@@ -25,10 +24,6 @@ async function loadData() {
   console.log("Refreshing data...");
   const data = await fetch24hHistory();
   balloonTracks = data;
-
-  console.log("24h balloon history loaded:", Object.keys(balloonTracks).length);
-
-  // Render markers & trails immediately
   renderTracks(balloonTracks);
 }
 
@@ -37,7 +32,6 @@ function clearOldMarkers() {
   markers.forEach(m => m.remove());
   markers = [];
 
-  // Remove old trails
   const layers = map.getStyle().layers;
   if (layers) {
     layers.forEach(l => {
@@ -66,7 +60,6 @@ function renderTracks(byId) {
       .addTo(map);
 
     marker.getElement().addEventListener("click", async () => {
-      // Fetch air quality only on click
       if (!latest.air) {
         latest.air = await fetchAirQuality(latest.lat, latest.lon);
       }
@@ -86,10 +79,7 @@ function renderTracks(byId) {
 
     map.addSource(lineId, {
       type: "geojson",
-      data: {
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: coords }
-      }
+      data: { type: "Feature", geometry: { type: "LineString", coordinates: coords } }
     });
 
     map.addLayer({

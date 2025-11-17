@@ -1,23 +1,13 @@
 {
-  "name": "windborne-jacobthompson-project",
+  "name": "windborne-project",
   "version": "1.0.0",
-  "main": "public/app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
-  },
-  "private": true,
   "type": "module",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.4.1",
+    "maplibre-gl": "^2.4.0"
   },
-  "directories": {
-    "lib": "lib"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  }
 }

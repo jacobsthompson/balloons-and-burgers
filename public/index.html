@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Windborne Balloon Tracker</title>
-  <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <title>WindBorne Balloons</title>
+  <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+  <script type="module" src="./app.js"></script>
+  <style>
+    #map { width: 100vw; height: 80vh; }
+    #balloon-details { padding: 10px; font-family: monospace; white-space: pre; }
+  </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="balloon-details">Click a balloon to see details</div>
-
-  <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js"></script>
+  <div id="balloon-details">Click a balloon marker to see details</div>
 </body>
 </html>
