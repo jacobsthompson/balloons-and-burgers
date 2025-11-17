@@ -6,35 +6,53 @@
   <title>Windborne Balloons Tracker</title>
 
   <!-- MapLibre GL CSS -->
-  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
 
   <style>
-    body, html {
+    * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
       height: 100%;
       width: 100%;
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow: hidden;
     }
+
     #map {
       width: 100%;
-      height: 80%;
+      height: 75vh;
     }
+
     #balloon-details {
-      padding: 10px;
-      height: 20%;
+      width: 100%;
+      height: 25vh;
+      padding: 20px;
       overflow-y: auto;
-      background: #f8f8f8;
-      border-top: 1px solid #ccc;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-top: 3px solid #fff;
       white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
     }
+
     #loading {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 18px;
-      color: #666;
+      color: #667eea;
+      background: white;
+      padding: 20px 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 1000;
     }
   </style>
 </head>
@@ -43,39 +61,29 @@
   <div id="map" style="display: none;"></div>
   <div id="balloon-details" style="display: none;">Click a balloon to see details</div>
 
-  <!-- Load MapLibre GL JS with proper error handling -->
+  <!-- Load MapLibre with proper error handling -->
   <script>
     (function() {
       const script = document.createElement('script');
-      script.src = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js';
+      script.src = 'https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.js';
       script.onload = function() {
-        console.log('MapLibre script loaded');
-
-        // Check if maplibregl is actually defined
         if (typeof maplibregl !== 'undefined') {
           console.log('MapLibre GL available, version:', maplibregl.version);
           document.getElementById('loading').style.display = 'none';
           document.getElementById('map').style.display = 'block';
           document.getElementById('balloon-details').style.display = 'block';
 
-          // Now load your app module
           const appScript = document.createElement('script');
           appScript.type = 'module';
           appScript.src = './app.js';
-          appScript.onerror = function() {
-            console.error('Failed to load app.js');
-            document.getElementById('loading').textContent = 'Failed to load application';
-          };
           document.body.appendChild(appScript);
         } else {
-          console.error('MapLibre GL loaded but maplibregl is undefined');
           document.getElementById('loading').textContent = 'MapLibre GL failed to initialize';
         }
       };
 
       script.onerror = function() {
-        console.error('Failed to load MapLibre GL script from CDN');
-        document.getElementById('loading').textContent = 'Failed to load MapLibre GL from CDN';
+        document.getElementById('loading').textContent = 'Failed to load MapLibre GL';
       };
 
       document.head.appendChild(script);

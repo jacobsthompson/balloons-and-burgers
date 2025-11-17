@@ -1,22 +1,21 @@
 import { fetch24hHistory } from "./lib/balloons.js";
 import { fetchAirQuality } from "./lib/airquality.js";
 
-// Map setup (maplibregl is loaded globally from script tag)
 const map = new maplibregl.Map({
   container: "map",
   style: "https://demotiles.maplibre.org/style.json",
   center: [0, 20],
-  zoom: 1.8
+  zoom: 2
 });
 
 let balloonTracks = {};
 let markers = [];
-let lines = [];
-const MAX_BALLOONS = 50; // Limit for performance
+let lineIds = [];
+const MAX_BALLOONS = 100; // Increased for better visualization
 
 async function init() {
   await loadData();
-  setInterval(loadData, 5 * 60 * 1000); // Refresh every 5 min
+  setInterval(loadData, 5 * 60 * 1000);
 }
 
 async function loadData() {
@@ -24,24 +23,32 @@ async function loadData() {
   const data = await fetch24hHistory();
   balloonTracks = data;
   console.log("Loaded balloons:", Object.keys(balloonTracks).length);
-  renderTracks(balloonTracks);
+
+  // Wait for map to be ready
+  if (!map.loaded()) {
+    map.once('load', () => renderTracks(balloonTracks));
+  } else {
+    renderTracks(balloonTracks);
+  }
 }
 
 function clearOldMarkers() {
   markers.forEach(m => m.remove());
   markers = [];
 
-  lines.forEach(l => {
-    if (map.getLayer(l.id)) map.removeLayer(l.id);
-    if (map.getSource(l.id)) map.removeSource(l.id);
+  // Remove old trail lines
+  lineIds.forEach(id => {
+    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getSource(id)) map.removeSource(id);
   });
-  lines = [];
+  lineIds = [];
 }
 
 function renderTracks(byId) {
   clearOldMarkers();
 
   const balloonEntries = Object.entries(byId).slice(0, MAX_BALLOONS);
+  console.log(`Rendering ${balloonEntries.length} balloons`);
 
   balloonEntries.forEach(([id, points]) => {
     if (!points.length) return;
@@ -49,8 +56,56 @@ function renderTracks(byId) {
     const latest = points[points.length - 1];
     if (latest.lat == null || latest.lon == null) return;
 
-    // Marker
-    const marker = new maplibregl.Marker({ color: "#ff4f4f" })
+    // Draw trail line (if there are multiple points)
+    if (points.length > 1) {
+      const coords = points.map(p => [p.lon, p.lat]);
+      const lineId = `line-${id}`;
+
+      try {
+        map.addSource(lineId, {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: coords
+            }
+          }
+        });
+
+        map.addLayer({
+          id: lineId,
+          type: "line",
+          source: lineId,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": "#ff6b6b",
+            "line-width": 2,
+            "line-opacity": 0.7
+          }
+        });
+
+        lineIds.push(lineId);
+      } catch (e) {
+        console.warn(`Failed to add line for balloon ${id}:`, e);
+      }
+    }
+
+    // Add marker at latest position
+    const el = document.createElement('div');
+    el.className = 'marker';
+    el.style.backgroundColor = '#ff4f4f';
+    el.style.width = '12px';
+    el.style.height = '12px';
+    el.style.borderRadius = '50%';
+    el.style.border = '2px solid white';
+    el.style.cursor = 'pointer';
+    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+
+    const marker = new maplibregl.Marker({ element: el })
       .setLngLat([latest.lon, latest.lat])
       .addTo(map);
 
@@ -62,34 +117,9 @@ function renderTracks(byId) {
     });
 
     markers.push(marker);
-
-    // Trail
-    const coords = points.map(p => [p.lon, p.lat]);
-    const lineId = `line-${id}`;
-
-    if (map.getSource(lineId)) {
-      map.removeLayer(lineId);
-      map.removeSource(lineId);
-    }
-
-    map.addSource(lineId, {
-      type: "geojson",
-      data: {
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: coords }
-      }
-    });
-
-    map.addLayer({
-      id: lineId,
-      type: "line",
-      source: lineId,
-      layout: { "line-join": "round", "line-cap": "round" },
-      paint: { "line-color": "#ff4f4f", "line-width": 2 }
-    });
-
-    lines.push({ id: lineId });
   });
+
+  console.log(`Drew ${lineIds.length} trails and ${markers.length} markers`);
 }
 
 function showBalloonDetails(points) {
@@ -97,16 +127,24 @@ function showBalloonDetails(points) {
   const div = document.getElementById("balloon-details");
 
   div.textContent = `
+═══════════════════════════════════════
+    BALLOON TRACKING DATA
+═══════════════════════════════════════
+
 Balloon ID: ${latest.id}
-Latest Position: (${latest.lat.toFixed(3)}, ${latest.lon.toFixed(3)})
-Altitude: ${latest.alt ?? "unknown"}
+Latest Position: ${latest.lat.toFixed(4)}°N, ${latest.lon.toFixed(4)}°E
+Altitude: ${latest.alt ? latest.alt.toFixed(0) + 'm' : 'unknown'}
 
-Air Quality at Last Fix:
-  PM2.5: ${latest.air?.pm25 ?? "N/A"}
-  PM10:  ${latest.air?.pm10 ?? "N/A"}
-  CO:    ${latest.air?.co ?? "N/A"}
+─────────────────────────────────────
+Air Quality at Latest Position:
+─────────────────────────────────────
+  PM2.5: ${latest.air?.pm25 ?? 'Loading...'}
+  PM10:  ${latest.air?.pm10 ?? 'Loading...'}
+  CO:    ${latest.air?.co ?? 'Loading...'}
 
-History Points: ${points.length}
+─────────────────────────────────────
+Flight History: ${points.length} data points over 24 hours
+═══════════════════════════════════════
   `.trim();
 }
 
