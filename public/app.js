@@ -14,6 +14,8 @@ let lineIds = [];
 let activePopup = null;
 const MAX_BALLOONS = 100;
 
+let selectedBalloonID = null;
+
 async function init() {
   map.on('load', async () => {
     console.log('Map loaded, now fetching data');
@@ -142,8 +144,13 @@ function renderTracks(byId) {
     });
 
     el.addEventListener("mouseleave", () => {
-      el.style.opacity = '0.5';
-      map.setPaintProperty(lineId, 'line-opacity', 0.5);
+      if (selectedBalloonID == lineId){
+        el.style.opacity = '1';
+        map.setPaintProperty(lineId, 'line-opacity', 1);
+      } else {
+        el.style.opacity = '0.5';
+        map.setPaintProperty(lineId, 'line-opacity', 0.5);
+      }
     });
 
     // Click - show popup and details
@@ -152,6 +159,16 @@ function renderTracks(byId) {
       if (activePopup) {
         activePopup.remove();
       }
+
+      selectedBalloonID = lineId;
+      el.style.opacity = '1'
+      map.setPaintProperty(lineId, 'line-opacity', 1);
+
+      lineIds.forEach(id => {
+        if (id !== lineId) {
+          map.setPaintProperty(id, 'line-opacity', 0.5);
+        }
+      });
 
       // Create popup with balloon info
       const popupHTML = `
