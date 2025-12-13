@@ -85,7 +85,7 @@ function renderBalloons() {
 
 /* ================== BURGER KINGS ================== */
 async function loadBurgerKingsForView() {
-  if (map.getZoom() < 6) return; // skip if zoomed out too far
+  if (map.getZoom() < 4) return; // skip if zoomed out too far
 
   const bounds = map.getBounds();
   burgerKings = await fetchBurgerKingLocations({
