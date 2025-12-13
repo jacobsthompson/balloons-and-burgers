@@ -1,4 +1,4 @@
-import { fetchCurrentBalloons } from './balloons.js';
+import { fetchCurrentBalloons } from './lib/balloons.js';
 
 const map = new maplibregl.Map({
   container: 'map',
