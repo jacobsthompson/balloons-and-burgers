@@ -1,29 +1,38 @@
-// burgerking-api.js
+// api/burgerking-api.js
 import fetch from "node-fetch";
+
+const CACHE = {}; // Simple in-memory cache: key = "south-west-north-east"
 
 export default async function handler(req, res) {
   const { south, west, north, east } = req.query;
 
-  // Validate input
   if (![south, west, north, east].every(v => v !== undefined)) {
-    return res.status(200).json([]);
+    return res.status(400).json({ error: "Missing bounding box parameters" });
   }
 
-  // Limit bounding box size to prevent Overpass timeout
-  const MAX_DEGREES = 5;
-  const latSpan = Math.abs(north - south);
-  const lonSpan = Math.abs(east - west);
+  const s = parseFloat(south),
+        w = parseFloat(west),
+        n = parseFloat(north),
+        e = parseFloat(east);
 
-  if (latSpan > MAX_DEGREES || lonSpan > MAX_DEGREES) {
-    return res.status(200).json([]);
+  // Limit bounding box size (degrees)
+  const MAX_DEGREES = 2;
+  if (Math.abs(n - s) > MAX_DEGREES || Math.abs(e - w) > MAX_DEGREES) {
+    return res.status(400).json({ error: "Bounding box too large" });
   }
 
+  const cacheKey = `${s}-${w}-${n}-${e}`;
+  if (CACHE[cacheKey]) {
+    return res.status(200).json(CACHE[cacheKey]);
+  }
+
+  // Overpass query
   const query = `
     [out:json][timeout:25];
     (
-      node["name"="Burger King"](${south},${west},${north},${east});
-      way["name"="Burger King"](${south},${west},${north},${east});
-      relation["name"="Burger King"](${south},${west},${north},${east});
+      node["name"="Burger King"](${s},${w},${n},${e});
+      way["name"="Burger King"](${s},${w},${n},${e});
+      relation["name"="Burger King"](${s},${w},${n},${e});
     );
     out center;
   `;
@@ -45,9 +54,10 @@ export default async function handler(req, res) {
       }))
       .filter(bk => bk.lat && bk.lon);
 
+    CACHE[cacheKey] = locations; // cache result
     return res.status(200).json(locations);
   } catch (e) {
-    console.error("Overpass API error:", e);
-    return res.status(500).json([]);
+    console.error("Overpass error:", e);
+    return res.status(500).json({ error: "Overpass API failed" });
   }
 }
