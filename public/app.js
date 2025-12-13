@@ -16,11 +16,12 @@ let markers = [];
 async function init() {
   map.on('load', async () => {
     console.log('✓ Map loaded');
-    await loadBalloons();
 
     burgerkings = await fetchBurgerKingLocations();
     console.log(`Loaded ${burgerkings.length} Burger Kings`);
     renderBurgerKings();
+
+    await loadBalloons();
 
     // Refresh every 5 minutes
     setInterval(loadBalloons, 5 * 60 * 1000);
