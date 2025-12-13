@@ -2,15 +2,14 @@
   "name": "windborne-burgerking",
   "version": "1.0.0",
   "description": "Track WindBorne weather balloons and their nearest Burger King locations",
-  "keywords": [
-    "windborne",
-    "balloons",
-    "map",
-    "vercel"
-  ],
-  "author": "Jacob Thompson",
-  "license": "MIT",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
+  },
   "dependencies": {
     "restaurant-location-search-api": "^1.0.1"
+  },
+  "engines": {
+    "node": ">=14.x"
   }
 }
