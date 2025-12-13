@@ -1,156 +1,166 @@
 import { fetchCurrentBalloons } from "./lib/balloons.js";
-import { fetchBurgerKingLocations, createBalloonBKConnections } from "./lib/burgerking.js";
+import {
+  fetchBurgerKingLocations,
+  createBalloonBKConnections
+} from "./lib/burgerKings.js";
+
+/* ================================
+   Map setup
+================================ */
 
 const map = new maplibregl.Map({
   container: "map",
   style: "https://demotiles.maplibre.org/style.json",
-  center: [-98.5795, 39.8283], // Center of USA
+  center: [-98.5795, 39.8283],
   zoom: 4
 });
 
+/* ================================
+   State
+================================ */
+
 let balloons = [];
-let burgerkings = [];
+let burgerKings = [];
 let connections = [];
-let markers = [];
+
+let balloonMarkers = [];
+let burgerKingMarkers = [];
+
+/* ================================
+   Init
+================================ */
 
 async function init() {
-  map.on('load', async () => {
-    console.log('✓ Map loaded');
-
-    burgerkings = await fetchBurgerKingLocations();
-    console.log(`Loaded ${burgerkings.length} Burger Kings`);
-    renderBurgerKings();
+  map.on("load", async () => {
+    console.log("✓ Map loaded");
 
     await loadBalloons();
+    await loadBurgerKingsForView();
 
-    // Refresh every 5 minutes
     setInterval(loadBalloons, 5 * 60 * 1000);
+
+    map.on("moveend", async () => {
+      await loadBurgerKingsForView();
+    });
   });
 }
+
+console.log("App initialized");
+init();
+
+/* ================================
+   Balloon loading
+================================ */
 
 async function loadBalloons() {
-  console.log('=== Loading balloons ===');
-  updateStatus('Loading balloons...');
+  updateStatus("Loading balloons...");
 
   try {
-    const balloonsData = await fetchCurrentBalloons();
-    console.log(`Fetched ${balloonsData.length} balloons`);
+    const data = await fetchCurrentBalloons();
+    balloons = data.slice(0, 100);
 
-    if (balloonsData.length === 0) {
-      console.error('No balloons received!');
-      updateStatus('No balloons found');
-      return;
-    }
+    console.log(`🎈 Loaded ${balloons.length} balloons`);
 
-    balloons = balloonsData.slice(0, 100); // Limit to 100
-    console.log(`Using ${balloons.length} balloons`);
-
-    connections = createBalloonBKConnections(balloons, burgerkings);
-    console.log(`Made ${connections.length} Connections`);
-
-    // Log first balloon to verify data structure
-    console.log('First balloon:', balloons[0]);
-
-    updateStatus(`✓ Loaded ${balloons.length} balloons`);
     renderBalloons();
-    renderConnections();
-
-  } catch (error) {
-    console.error('Error loading balloons:', error);
-    updateStatus('❌ Error loading balloons');
+    updateConnections();
+  } catch (err) {
+    console.error(err);
+    updateStatus("❌ Failed to load balloons");
   }
 }
+
+/* ================================
+   Burger King loading (bounded)
+================================ */
+
+async function loadBurgerKingsForView() {
+  const bounds = map.getBounds();
+
+  burgerKings = await fetchBurgerKingLocations({
+    south: bounds.getSouth(),
+    west: bounds.getWest(),
+    north: bounds.getNorth(),
+    east: bounds.getEast()
+  });
+
+  console.log(`🍔 Loaded ${burgerKings.length} Burger Kings`);
+
+  renderBurgerKings();
+  updateConnections();
+}
+
+/* ================================
+   Rendering: Balloons
+================================ */
 
 function renderBalloons() {
-  console.log('=== Rendering balloons ===');
+  balloonMarkers.forEach(m => m.remove());
+  balloonMarkers = [];
 
-  // Check if map is ready
-  if (!map.isStyleLoaded()) {
-    console.log('Map not ready, waiting...');
-    map.once('idle', renderBalloons);
-    return;
-  }
+  balloons.forEach(balloon => {
+    if (!balloon.lat || !balloon.lon) return;
 
-  // Clear old markers
-  console.log(`Clearing ${markers.length} old markers`);
-  markers.forEach(m => m.remove());
-  markers = [];
+    const el = document.createElement("div");
+    el.style.width = "16px";
+    el.style.height = "16px";
+    el.style.background = "#ffff00";
+    el.style.border = "3px solid #ff4f4f";
+    el.style.borderRadius = "50%";
+    el.style.cursor = "pointer";
 
-  // Render each balloon
-  let successCount = 0;
+    const marker = new maplibregl.Marker(el)
+      .setLngLat([balloon.lon, balloon.lat])
+      .addTo(map);
 
-  balloons.forEach((balloon, index) => {
-    try {
-      // Validate coordinates
-      if (!balloon.lat || !balloon.lon) {
-        console.warn(`Balloon ${index} missing coordinates:`, balloon);
-        return;
-      }
-
-      if (isNaN(balloon.lat) || isNaN(balloon.lon)) {
-        console.warn(`Balloon ${index} has invalid coordinates:`, balloon);
-        return;
-      }
-
-      // Create marker element
-      const el = document.createElement('div');
-      el.className = 'balloon-marker';
-      el.style.backgroundColor = '#ffff00';
-      el.style.width = '16px';
-      el.style.height = '16px';
-      el.style.borderRadius = '50%';
-      el.style.border = '3px solid #ff4f4f';
-      el.style.cursor = 'pointer';
-      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
-
-      // Create marker
-      const marker = new maplibregl.Marker({ element: el })
+    el.addEventListener("click", () => {
+      new maplibregl.Popup({ offset: 25 })
         .setLngLat([balloon.lon, balloon.lat])
+        .setHTML(`
+          <strong>🎈 ${balloon.id}</strong><br/>
+          Lat: ${balloon.lat.toFixed(4)}<br/>
+          Lon: ${balloon.lon.toFixed(4)}
+        `)
         .addTo(map);
+    });
 
-      // Add click handler
-      el.addEventListener('click', () => {
-        new maplibregl.Popup({ offset: 25 })
-          .setLngLat([balloon.lon, balloon.lat])
-          .setHTML(`
-            <div style="font-family: monospace; font-size: 12px;">
-              <strong style="color: #ffff00;">🎈 ${balloon.id}</strong><br/>
-              Lat: ${balloon.lat.toFixed(4)}°<br/>
-              Lon: ${balloon.lon.toFixed(4)}°<br/>
-              Alt: ${balloon.alt ? balloon.alt.toFixed(2) + ' km' : 'unknown'}
-            </div>
-          `)
-          .addTo(map);
-
-        showBalloonDetails(balloon);
-      });
-
-      markers.push(marker);
-      successCount++;
-
-    } catch (err) {
-      console.error(`Failed to render balloon ${index}:`, err);
-    }
+    balloonMarkers.push(marker);
   });
-
-  console.log(`✓ Successfully rendered ${successCount}/${balloons.length} balloons`);
-  updateStatus(`✓ Showing ${successCount} balloons on map`);
 }
 
-function renderBurgerKings() {
-  burgerkings.forEach(bk => {
-    const el = document.createElement("div");
-    el.className = "bk-marker";
-    el.style.width = "12px";
-    el.style.height = "12px";
-    el.style.background = "#ff0000";
-    el.style.borderRadius = "50%";
-    el.style.border = "2px solid white";
+/* ================================
+   Rendering: Burger Kings
+================================ */
 
-    new maplibregl.Marker(el)
+function renderBurgerKings() {
+  burgerKingMarkers.forEach(m => m.remove());
+  burgerKingMarkers = [];
+
+  burgerKings.forEach(bk => {
+    const el = document.createElement("div");
+    el.style.width = "14px";
+    el.style.height = "14px";
+    el.style.background = "black";
+    el.style.border = "3px solid red";
+    el.style.borderRadius = "50%";
+    el.style.zIndex = "5";
+
+    const marker = new maplibregl.Marker(el)
       .setLngLat([bk.lon, bk.lat])
       .addTo(map);
+
+    burgerKingMarkers.push(marker);
   });
+}
+
+/* ================================
+   Connections
+================================ */
+
+function updateConnections() {
+  if (!balloons.length || !burgerKings.length) return;
+
+  connections = createBalloonBKConnections(balloons, burgerKings);
+  renderConnections();
 }
 
 function renderConnections() {
@@ -193,31 +203,12 @@ function renderConnections() {
   });
 }
 
-function showBalloonDetails(balloon) {
-  const div = document.getElementById("balloon-details");
-  if (!div) return;
-
-  div.textContent = `
-Balloon: ${balloon.id}
-Position: ${balloon.lat.toFixed(4)}°, ${balloon.lon.toFixed(4)}°
-Altitude: ${balloon.alt ? balloon.alt.toFixed(2) + ' km' : 'unknown'}
-  `.trim();
-}
+/* ================================
+   UI helpers
+================================ */
 
 function updateStatus(text) {
-  const statusEl = document.getElementById('status');
-  if (statusEl) statusEl.textContent = text;
-  console.log('Status:', text);
+  const el = document.getElementById("status");
+  if (el) el.textContent = text;
+  console.log("Status:", text);
 }
-
-// Manual refresh button
-const refreshBtn = document.getElementById('refresh-now');
-if (refreshBtn) {
-  refreshBtn.addEventListener('click', () => {
-    console.log('Manual refresh triggered');
-    loadBalloons();
-  });
-}
-
-console.log('App initialized');
-init();

@@ -9,43 +9,48 @@ let lastFetch = 0;
 const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 hours
 
 router.get("/", async (req, res) => {
+  const { south, west, north, east } = req.query;
+
+  if (![south, west, north, east].every(v => v !== undefined)) {
+    return res.json([]);
+  }
+
+  const query = `
+[out:json][timeout:25];
+(
+  node["name"="Burger King"](${south},${west},${north},${east});
+  way["name"="Burger King"](${south},${west},${north},${east});
+  relation["name"="Burger King"](${south},${west},${north},${east});
+);
+out center;
+`;
+
   try {
-    if (cached && Date.now() - lastFetch < CACHE_TIME) {
-      return res.json(cached);
-    }
-
-    const query = `
-    [out:json][timeout:25];
-    (
-      node["amenity"="fast_food"]["name"="Burger King"];
-      way["amenity"="fast_food"]["name"="Burger King"];
-      relation["amenity"="fast_food"]["name"="Burger King"];
+    const response = await fetch(
+      "https://overpass-api.de/api/interpreter",
+      {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: query
+      }
     );
-    out center;
-    `;
-
-
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: query
-    });
 
     const data = await response.json();
 
-    const locations = data.elements.map(el => ({
-      id: el.id,
-      lat: el.lat,
-      lon: el.lon
-    }));
-
-    cached = locations;
-    lastFetch = Date.now();
+    const locations = data.elements
+      .map(el => ({
+        id: el.id,
+        lat: el.lat ?? el.center?.lat,
+        lon: el.lon ?? el.center?.lon
+      }))
+      .filter(bk => bk.lat && bk.lon);
 
     res.json(locations);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json([]);
+  } catch (e) {
+    console.error("Overpass error:", e);
+    res.json([]);
   }
 });
+
 
 export default router;
