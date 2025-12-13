@@ -1,5 +1,5 @@
-import { fetchCurrentBalloons } from "./lib/balloons-simple.js";
-import { fetchBurgerKingLocations, createBalloonBKConnections } from "./lib/burgerking-simple.js";
+import { fetchCurrentBalloons } from "./lib/balloons.js";
+import { fetchBurgerKingLocations, createBalloonBKConnections } from "./lib/burgerking.js";
 
 const map = new maplibregl.Map({
   container: "map",
