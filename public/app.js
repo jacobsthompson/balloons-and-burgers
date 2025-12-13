@@ -144,7 +144,7 @@ function updateUI() {
   if (!c) return;
 
   document.getElementById("distance-text").textContent =
-    `Balloon #${currentIndex + 1} is ${toMiles(c.distance)} miles away from Burger King`;
+    `Balloon #${c.id} is ${toMiles(c.distance)} miles away from Burger King`;
 
   document.getElementById("location-text").textContent =
     `Lat ${c.balloon.lat.toFixed(3)}, Lon ${c.balloon.lon.toFixed(3)}`;
@@ -169,6 +169,12 @@ function setupUI() {
 
   document.getElementById("next-btn").onclick = () => {
     currentIndex = (currentIndex + 1) % connections.length;
+    flyToCurrent();
+    updateUI();
+  };
+
+  document.getElementById("closest-btn").onclick = () => {
+    currentIndex = 0;
     flyToCurrent();
     updateUI();
   };
