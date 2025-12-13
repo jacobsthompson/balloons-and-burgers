@@ -1,4 +1,5 @@
 import { fetchCurrentBalloons } from "./lib/balloons.js";
+import { fetchBurgerKingLocations, createBalloonBKConnections } from "./lib/burgerking.js";
 
 const map = new maplibregl.Map({
   container: "map",
@@ -8,12 +9,18 @@ const map = new maplibregl.Map({
 });
 
 let balloons = [];
+let burgerkings = [];
+let connections = [];
 let markers = [];
 
 async function init() {
   map.on('load', async () => {
     console.log('✓ Map loaded');
     await loadBalloons();
+
+    burgerkings = await fetchBurgerKingLocations();
+    console.log(`Loaded ${burgerkings.length} Burger Kings`);
+    renderBurgerKings();
 
     // Refresh every 5 minutes
     setInterval(loadBalloons, 5 * 60 * 1000);
@@ -29,19 +36,23 @@ async function loadBalloons() {
     console.log(`Fetched ${balloonsData.length} balloons`);
 
     if (balloonsData.length === 0) {
-      console.error('❌ No balloons received!');
-      updateStatus('❌ No balloons found');
+      console.error('No balloons received!');
+      updateStatus('No balloons found');
       return;
     }
 
     balloons = balloonsData.slice(0, 100); // Limit to 100
     console.log(`Using ${balloons.length} balloons`);
 
+    connections = createBalloonBKConnections(balloons, burgerkings);
+    console.log(`Made ${connections.length} Connections`);
+
     // Log first balloon to verify data structure
     console.log('First balloon:', balloons[0]);
 
     updateStatus(`✓ Loaded ${balloons.length} balloons`);
     renderBalloons();
+    renderConnections();
 
   } catch (error) {
     console.error('Error loading balloons:', error);
@@ -123,6 +134,62 @@ function renderBalloons() {
 
   console.log(`✓ Successfully rendered ${successCount}/${balloons.length} balloons`);
   updateStatus(`✓ Showing ${successCount} balloons on map`);
+}
+
+function renderBurgerKings() {
+  burgerkings.forEach(bk => {
+    const el = document.createElement("div");
+    el.className = "bk-marker";
+    el.style.width = "12px";
+    el.style.height = "12px";
+    el.style.background = "#ff0000";
+    el.style.borderRadius = "50%";
+    el.style.border = "2px solid white";
+
+    new maplibregl.Marker(el)
+      .setLngLat([bk.lon, bk.lat])
+      .addTo(map);
+  });
+}
+
+function renderConnections() {
+  const geojson = {
+    type: "FeatureCollection",
+    features: connections.map(conn => ({
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [conn.balloon.lon, conn.balloon.lat],
+          [conn.burgerKing.lon, conn.burgerKing.lat]
+        ]
+      },
+      properties: {
+        distance: conn.distance
+      }
+    }))
+  };
+
+  if (map.getSource("balloon-bk-lines")) {
+    map.getSource("balloon-bk-lines").setData(geojson);
+    return;
+  }
+
+  map.addSource("balloon-bk-lines", {
+    type: "geojson",
+    data: geojson
+  });
+
+  map.addLayer({
+    id: "balloon-bk-layer",
+    type: "line",
+    source: "balloon-bk-lines",
+    paint: {
+      "line-color": "#ffa500",
+      "line-width": 2,
+      "line-opacity": 0.6
+    }
+  });
 }
 
 function showBalloonDetails(balloon) {

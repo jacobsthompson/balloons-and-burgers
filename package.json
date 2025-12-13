@@ -7,6 +7,8 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
+    "express": "^5.2.1",
+    "node-fetch": "^3.3.2",
     "restaurant-location-search-api": "^1.0.1"
   },
   "engines": {
