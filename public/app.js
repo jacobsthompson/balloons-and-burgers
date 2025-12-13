@@ -182,7 +182,7 @@ function updateMarkerOpacity() {
     map.setPaintProperty(
       lineId,
       'line-opacity',
-      conn.balloon.id === activeConn.balloon.id ? 1 : 0.4
+      conn.balloon.id === selectedConnection.balloon.id ? 1 : 0.4
     );
   });
 }
