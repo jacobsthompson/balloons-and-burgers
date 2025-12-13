@@ -1,5 +1,5 @@
 import { fetchCurrentBalloons } from './lib/balloons.js';
-import { findClosestBurgerKing } from './lib/burgerking.js';
+import { findClosestBurgerKing, toMiles } from './lib/burgerking.js';
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -12,11 +12,25 @@ let balloons = [];
 let burgerkings = [];
 let markers = [];
 
+let connections = [];
+let currentIndex = 0;
+
 // Initial load
 async function init() {
   map.on('load', async () => {
     console.log('Map loaded');
     await loadData();
+
+    const result = createConnections(balloons,burgerkings);
+    connections = result.connections;
+    burgerkings = result.filteredBKs;
+
+    renderMap(balloons,burgerkings);
+
+    currentIndex = 0;
+    setupUI();
+    updateUI();
+    flyToCurrent();
 
     // Refresh balloons every 5 min
     setInterval(loadData, 5 * 60 * 1000);
@@ -38,12 +52,13 @@ function createConnections(balloons, burgerkings) {
   const usedBKs = new Set();
   const connections = balloons.map(balloon => {
     const closestBK = findClosestBurgerKing(balloon, burgerkings);
+    const { bk, distance } = closestBK;
     if (closestBK) usedBKs.add(closestBK.id); // track which BKs are used
-    return { balloon, burgerKing: closestBK };
-  });
-
+    return { balloon, burgerKing: bk, distance };
+  }).filter(Boolean);
   // Only keep BKs that have at least one connection
   const filteredBKs = burgerkings.filter(bk => usedBKs.has(bk.id));
+  connections.sort((a,b) => a.distance - b.distance);
   return { connections, filteredBKs };
 }
 
@@ -57,6 +72,7 @@ function renderMap(balloons, burgerkings) {
   // Render balloons 🎈
   balloons.forEach(balloon => {
     const el = document.createElement('div');
+    el.className = "marker";
     el.textContent = "🎈";
     el.style.fontSize = '24px';
     el.style.cursor = 'pointer';
@@ -71,6 +87,7 @@ function renderMap(balloons, burgerkings) {
   // Render Burger Kings 🍔 (only those used)
   filteredBKs.forEach(bk => {
     const el = document.createElement('div');
+    el.className = "marker";
     el.textContent = "🍔";
     el.style.fontSize = '24px';
     el.style.cursor = 'pointer';
@@ -114,6 +131,55 @@ function renderMap(balloons, burgerkings) {
       }
     });
   });
+}
+
+//UI
+
+function updateUI() {
+  const c = connections[currentIndex];
+  if (!c) return;
+
+  document.getElementById("distance-text").textContent =
+    `Balloon #${currentIndex + 1} is ${toMiles(c.distance)} miles away from Burger King`;
+
+  document.getElementById("location-text").textContent =
+    `Lat ${c.balloon.lat.toFixed(3)}, Lon ${c.balloon.lon.toFixed(3)}`;
+}
+
+function flyToCurrent() {
+  const c = connections[currentIndex];
+  map.flyTo({
+    center: [c.balloon.lon, c.balloon.lat],
+    zoom: 6,
+    speed: 0.8
+  });
+}
+
+function setupUI() {
+  document.getElementById("prev-btn").onclick = () => {
+    currentIndex =
+      (currentIndex - 1 + connections.length) % connections.length;
+    flyToCurrent();
+    updateUI();
+  };
+
+  document.getElementById("next-btn").onclick = () => {
+    currentIndex = (currentIndex + 1) % connections.length;
+    flyToCurrent();
+    updateUI();
+  };
+
+  document.getElementById("furthest-btn").onclick = () => {
+    currentIndex = connections.length - 1;
+    flyToCurrent();
+    updateUI();
+  };
+
+  document.getElementById("random-btn").onclick = () => {
+    currentIndex = Math.floor(Math.random() * connections.length);
+    flyToCurrent();
+    updateUI();
+  };
 }
 
 init();

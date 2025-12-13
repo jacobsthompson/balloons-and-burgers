@@ -1,44 +1,83 @@
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Page layout */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+}
+
+/* Map fills screen */
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+/* UI panel */
 #ui-panel {
   position: absolute;
   top: 20px;
   left: 20px;
-  width: 300px;
+  width: 320px;
   background: white;
-  padding: 16px;
-  border-radius: 12px;
-  font-family: system-ui, sans-serif;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  padding: 16px 18px;
+  border-radius: 14px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.18);
   z-index: 10;
 }
 
+/* Main distance line */
 #distance-text {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 8px;
+  line-height: 1.3;
+  margin-bottom: 6px;
 }
 
+/* Location line */
 #location-text {
   font-size: 14px;
-  opacity: 0.8;
+  color: #555;
   margin-bottom: 16px;
 }
 
+/* Button rows */
 .nav-row {
   display: flex;
-  justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
 }
 
+/* Buttons */
 button {
   flex: 1;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 10px 8px;
+  border-radius: 10px;
   border: none;
+  font-size: 13px;
   cursor: pointer;
   background: #f2f2f2;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 
 button:hover {
   background: #e0e0e0;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Emoji marker styling (optional helper) */
+.marker {
+  font-size: 22px;
+  cursor: pointer;
+  user-select: none;
 }

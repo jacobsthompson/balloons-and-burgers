@@ -1,19 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Balloons & Burger King Map</title>
-  <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
-  <style>
-    #map { width: 100vw; height: 100vh; }
-    .bk-marker { background-color: #ff0000; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; }
-    .balloon-marker { }
-  </style>
+  <meta charset="UTF-8" />
+  <title>Balloons & Burger Kings</title>
+
+  <!-- MapLibre GL -->
+  <link
+    href="https://unpkg.com/maplibre-gl@3.6.0/dist/maplibre-gl.css"
+    rel="stylesheet"
+  />
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+
+  <!-- Left-side UI panel -->
   <div id="ui-panel">
-    <div id="distance-text"></div>
-    <div id="location-text"></div>
+    <div id="distance-text">
+      Loading closest balloon…
+    </div>
+
+    <div id="location-text">
+      —
+    </div>
 
     <div class="nav-row">
       <button id="prev-btn">← View Previous Closest</button>
@@ -25,8 +36,15 @@
       <button id="random-btn">View Random Balloon</button>
     </div>
   </div>
+
+  <!-- Map container -->
   <div id="map"></div>
-  <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
-  <script type="module" src="./app.js"></script>
+
+  <!-- MapLibre GL -->
+  <script src="https://unpkg.com/maplibre-gl@3.6.0/dist/maplibre-gl.js"></script>
+
+  <!-- App logic -->
+  <script src="app.js"></script>
+
 </body>
 </html>
