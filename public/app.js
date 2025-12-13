@@ -1,100 +1,122 @@
-import { fetch24hHistory } from "./lib/balloons.js";
-import { fetchAirQuality } from "./lib/airquality.js";
+import { fetchCurrentBalloons } from "./lib/balloons.js";
+import { fetchBurgerKingLocations, createBalloonBKConnections } from "./lib/burgerking.js";
 
 const map = new maplibregl.Map({
   container: "map",
   style: "https://demotiles.maplibre.org/style.json",
-  center: [0, 20],
-  zoom: 2
+  center: [-98.5795, 39.8283], // Center of USA
+  zoom: 4
 });
 
-let balloonTracks = {};
+let balloons = [];
+let burgerKings = [];
+let connections = [];
 let markers = [];
-let lineIds = [];
-let activePopup = null;
+let burgerKingMarkers = [];
+let connectionLines = [];
 let MAX_BALLOONS = 100;
-
-let selectedBalloonID = null;
 
 async function init() {
   map.on('load', async () => {
-    console.log('Map loaded, now fetching data');
+    console.log('Map loaded, fetching data...');
     await loadData();
-    setInterval(loadData, 5 * 60 * 1000);
+    setInterval(loadData, 60 * 60 * 1000); // Refresh every hour
   });
 }
 
 async function loadData() {
-  updateStatus('Refreshing data…');
-  console.log("Refreshing data...");
+  updateStatus('Loading data...');
 
-  const data = await fetch24hHistory();
-  balloonTracks = data;
+  // Fetch both balloons and BK locations
+  const [balloonsData, bkData] = await Promise.all([
+    fetchCurrentBalloons(),
+    fetchBurgerKingLocations()
+  ]);
 
-  console.log("Loaded balloons:", Object.keys(balloonTracks).length);
-  const firstBalloonId = Object.keys(balloonTracks)[0];
-  if (firstBalloonId) {
-    console.log("Sample balloon:", firstBalloonId, "has", balloonTracks[firstBalloonId].length, "points");
-  }
+  balloons = balloonsData.slice(0, MAX_BALLOONS);
+  burgerKings = bkData;
 
-  updateStatus(`Loaded ${Object.keys(balloonTracks).length} balloons`);
-  renderTracks(balloonTracks);
+  console.log(`Loaded ${balloons.length} balloons and ${burgerKings.length} Burger Kings`);
+
+  // Create connections
+  connections = createBalloonBKConnections(balloons, burgerKings);
+
+  updateStatus(`${balloons.length} balloons • ${burgerKings.length} Burger Kings`);
+  updateConnectionStats();
+
+  renderMap();
 }
 
-function clearOldMarkers() {
+function clearMarkers() {
   markers.forEach(m => m.remove());
   markers = [];
 
-  lineIds.forEach(id => {
-    if (map.getLayer(id)) map.removeLayer(id);
-    if (map.getSource(id)) map.removeSource(id);
-  });
-  lineIds = [];
+  burgerKingMarkers.forEach(m => m.remove());
+  burgerKingMarkers = [];
 
-  if (activePopup) {
-    activePopup.remove();
-    activePopup = null;
-  }
+  connectionLines.forEach(lineId => {
+    if (map.getLayer(lineId)) map.removeLayer(lineId);
+    if (map.getSource(lineId)) map.removeSource(lineId);
+  });
+  connectionLines = [];
 }
 
-function renderTracks(byId) {
+function renderMap() {
   if (!map.isStyleLoaded()) {
-    console.warn('Map style not loaded yet, waiting...');
-    map.once('idle', () => renderTracks(byId));
+    map.once('idle', renderMap);
     return;
   }
 
-  clearOldMarkers();
+  clearMarkers();
 
-  const balloonEntries = Object.entries(byId).slice(0, MAX_BALLOONS);
-  console.log(`Rendering ${balloonEntries.length} balloons`);
+  // Render Burger Kings
+  burgerKings.forEach(bk => {
+    const el = document.createElement('div');
+    el.innerHTML = '🍔';
+    el.style.fontSize = '24px';
+    el.style.cursor = 'pointer';
+    el.style.textShadow = '0 0 4px white';
 
-  let trailsDrawn = 0;
-  let markersDrawn = 0;
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([bk.lng, bk.lat])
+      .addTo(map);
 
-  balloonEntries.forEach(([id, points]) => {
-    if (!points.length) return;
+    el.addEventListener('click', () => {
+      new maplibregl.Popup({ offset: 25 })
+        .setLngLat([bk.lng, bk.lat])
+        .setHTML(`
+          <div style="font-family: monospace; font-size: 12px;">
+            <strong style="color: #d62300;">🍔 Burger King</strong><br/>
+            ${bk.name}<br/>
+            ${bk.address || ''}<br/>
+            ${bk.lat.toFixed(4)}°, ${bk.lng.toFixed(4)}°
+          </div>
+        `)
+        .addTo(map);
+    });
 
-    const latest = points[points.length - 1];
-    if (latest.lat == null || latest.lon == null) return;
+    burgerKingMarkers.push(marker);
+  });
 
-    // Draw trail line
-    const coords = points.map(p => [p.lon, p.lat]);
-    const lineId = `line-${id}`;
+  // Render balloons and connection lines
+  connections.forEach((conn, index) => {
+    const balloon = conn.balloon;
+    const bk = conn.burgerKing;
+
+    // Draw line from balloon to closest BK
+    const lineId = `line-${balloon.id}`;
 
     try {
-      if (map.getSource(lineId)) {
-        map.removeLayer(lineId);
-        map.removeSource(lineId);
-      }
-
       map.addSource(lineId, {
         type: "geojson",
         data: {
           type: "Feature",
           geometry: {
             type: "LineString",
-            coordinates: coords
+            coordinates: [
+              [balloon.lon, balloon.lat],
+              [bk.lng, bk.lat]
+            ]
           }
         }
       });
@@ -108,21 +130,21 @@ function renderTracks(byId) {
           "line-cap": "round"
         },
         paint: {
-          "line-color": "#ff4f4f",
-          "line-width": 3,
-          "line-opacity": 0.5  // Half opacity by default
+          "line-color": "#00ff00",
+          "line-width": 2,
+          "line-opacity": 0.4,
+          "line-dasharray": [2, 2]
         }
       });
 
-      lineIds.push(lineId);
-      trailsDrawn++;
+      connectionLines.push(lineId);
     } catch (e) {
-      console.error(`Failed to add line for balloon ${id}:`, e);
+      console.error(`Failed to draw line for ${balloon.id}:`, e);
     }
 
-    // Add marker at latest position
+    // Add balloon marker
     const el = document.createElement('div');
-    el.className = 'marker';
+    el.className = 'balloon-marker';
     el.style.backgroundColor = '#ffff00';
     el.style.width = '16px';
     el.style.height = '16px';
@@ -130,96 +152,70 @@ function renderTracks(byId) {
     el.style.border = '3px solid #ff4f4f';
     el.style.cursor = 'pointer';
     el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
-    el.style.opacity = '0.5';  // Half opacity by default
-    el.style.transition = 'opacity 0.2s ease';
 
     const marker = new maplibregl.Marker({ element: el })
-      .setLngLat([latest.lon, latest.lat])
+      .setLngLat([balloon.lon, balloon.lat])
       .addTo(map);
 
-    // Hover effect - highlight marker and trail
-    el.addEventListener("mouseenter", () => {
-      el.style.opacity = '1';
-      map.setPaintProperty(lineId, 'line-opacity', 1);
+    // Hover effects
+    el.addEventListener('mouseenter', () => {
+      if (map.getLayer(lineId)) {
+        map.setPaintProperty(lineId, 'line-opacity', 0.8);
+        map.setPaintProperty(lineId, 'line-width', 3);
+      }
     });
 
-    el.addEventListener("mouseleave", () => {
-      if (selectedBalloonID === lineId){
-        el.style.opacity = '1';
+    el.addEventListener('mouseleave', () => {
+      if (map.getLayer(lineId)) {
+        map.setPaintProperty(lineId, 'line-opacity', 0.4);
+        map.setPaintProperty(lineId, 'line-width', 2);
+      }
+    });
+
+    // Click to show info
+    el.addEventListener('click', () => {
+      if (map.getLayer(lineId)) {
         map.setPaintProperty(lineId, 'line-opacity', 1);
-      } else {
-        el.style.opacity = '0.5';
-        map.setPaintProperty(lineId, 'line-opacity', 0.5);
-      }
-    });
-
-    // Click - show popup and details
-    el.addEventListener("click", async () => {
-      // Remove previous popup if exists
-      if (activePopup) {
-        activePopup.remove();
+        map.setPaintProperty(lineId, 'line-width', 4);
       }
 
-      selectedBalloonID = lineId;
-      el.style.opacity = '1'
-      map.setPaintProperty(lineId, 'line-opacity', 1);
-
-      lineIds.forEach((id, index) => {
-        if (id !== lineId) {
-          map.setPaintProperty(id, 'line-opacity', 0.5);
-          if (markers[index]) {
-            markers[index].getElement().style.opacity = '0.5';
-          }
-        }
-      });
-
-      // Create popup with balloon info
-      const popupHTML = `
-        <div style="font-family: monospace; font-size: 12px; min-width: 200px;">
-          <strong>${latest.id}</strong><br/>
-          ${latest.lat.toFixed(4)}°N, ${latest.lon.toFixed(4)}°E
-        </div>
-      `;
-
-      activePopup = new maplibregl.Popup({
-        closeButton: true,
-        closeOnClick: true,
-        offset: 25
-      })
-        .setLngLat([latest.lon, latest.lat])
-        .setHTML(popupHTML)
+      new maplibregl.Popup({ offset: 25 })
+        .setLngLat([balloon.lon, balloon.lat])
+        .setHTML(`
+          <div style="font-family: monospace; font-size: 12px;">
+            <strong style="color: #ffff00;">🎈 ${balloon.id}</strong><br/>
+            Position: ${balloon.lat.toFixed(4)}°, ${balloon.lon.toFixed(4)}°<br/>
+            Altitude: ${balloon.alt ? balloon.alt.toFixed(2) + ' km' : 'unknown'}<br/>
+            <hr style="margin: 8px 0;"/>
+            <strong style="color: #00ff00;">Nearest Burger King:</strong><br/>
+            ${bk.name}<br/>
+            Distance: ${conn.distanceMiles} miles<br/>
+            (${Math.round(conn.distance)} meters)
+          </div>
+        `)
         .addTo(map);
 
-      // Update details panel
-      if (!latest.air) {
-        latest.air = await fetchAirQuality(latest.lat, latest.lon);
-      }
-      showBalloonDetails(points);
+      showBalloonDetails(conn);
     });
 
     markers.push(marker);
-    markersDrawn++;
   });
 
-  console.log(`FINAL: Drew ${trailsDrawn} trails and ${markersDrawn} markers`);
-  updateStatus(`Showing ${markersDrawn} balloons with ${trailsDrawn} trails`);
+  console.log(`Rendered ${markers.length} balloons with ${connectionLines.length} connection lines`);
 }
 
-function showBalloonDetails(points) {
-  const latest = points[points.length - 1];
+function showBalloonDetails(conn) {
   const div = document.getElementById("balloon-details");
 
   div.textContent = `
-Balloon ID: ${latest.id}
-Latest Position: ${latest.lat.toFixed(4)}°N, ${latest.lon.toFixed(4)}°E
-Altitude: ${latest.alt ? latest.alt.toFixed(0) + 'm' : 'unknown'}
+Balloon: ${conn.balloon.id}
+Position: ${conn.balloon.lat.toFixed(4)}°, ${conn.balloon.lon.toFixed(4)}°
+Altitude: ${conn.balloon.alt ? conn.balloon.alt.toFixed(2) + ' km' : 'unknown'}
 
-Air Quality at Latest Position:
-  PM2.5: ${latest.air?.pm25 ?? 'Loading...'}
-  PM10:  ${latest.air?.pm10 ?? 'Loading...'}
-  CO:    ${latest.air?.co ?? 'Loading...'}
-
-Flight History: ${points.length} data points over 24 hours
+Nearest Burger King:
+  ${conn.burgerKing.name}
+  ${conn.burgerKing.address || ''}
+  Distance: ${conn.distanceMiles} miles (${Math.round(conn.distance)} meters)
   `.trim();
 }
 
@@ -228,12 +224,18 @@ function updateStatus(text) {
   if (statusEl) statusEl.textContent = text;
 }
 
+function updateConnectionStats() {
+  const statsEl = document.getElementById('connection-stats');
+  if (statsEl) {
+    const avgDistance = connections.reduce((sum, c) => sum + parseFloat(c.distanceMiles), 0) / connections.length;
+    statsEl.textContent = `${connections.length} connections • Avg distance: ${avgDistance.toFixed(1)} miles`;
+  }
+}
+
+// Event listeners
 const refreshBtn = document.getElementById('refresh-now');
 if (refreshBtn) {
-  refreshBtn.addEventListener('click', () => {
-    updateStatus('Manual refresh…');
-    loadData();
-  });
+  refreshBtn.addEventListener('click', loadData);
 }
 
 const slider = document.getElementById('max-balloons-slider');
@@ -241,13 +243,12 @@ const sliderValue = document.getElementById('max-balloons-value');
 
 if (slider) {
   slider.addEventListener('input', () => {
-      let NEW_MAX_BALLOONS = parseInt(slider.value, 10);
-      if(!(MAX_BALLOONS === NEW_MAX_BALLOONS)){
-        MAX_BALLOONS = NEW_MAX_BALLOONS;
-        sliderValue.textContent = MAX_BALLOONS;
-        // Optionally, refresh map immediately when slider changes
-        loadData();
-      }
+    const newMax = parseInt(slider.value, 10);
+    if (MAX_BALLOONS !== newMax) {
+      MAX_BALLOONS = newMax;
+      sliderValue.textContent = MAX_BALLOONS;
+      loadData();
+    }
   });
 }
 
