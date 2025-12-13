@@ -12,10 +12,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   return Radius * distance; // Distance in meters
 }
 
-/* ================================
-   Closest Burger King
-================================ */
-
+// Find closest BK to a balloon
 export function findClosestBurgerKing(balloonLat, balloonLon, burgerKings) {
   if (!burgerKings || burgerKings.length === 0) return null;
 
@@ -33,10 +30,7 @@ export function findClosestBurgerKing(balloonLat, balloonLon, burgerKings) {
   return closest;
 }
 
-/* ================================
-   Connections: balloon → BK
-================================ */
-
+// Create connections
 export function createBalloonBKConnections(balloons, burgerKings) {
   return balloons
     .map(balloon => {
@@ -53,10 +47,7 @@ export function createBalloonBKConnections(balloons, burgerKings) {
     .filter(conn => conn !== null);
 }
 
-/* ================================
-   Fetch Burger Kings from server
-================================ */
-
+// Fetch BKs from server endpoint
 export async function fetchBurgerKingLocations(bounds) {
   const { south, west, north, east } = bounds || {};
 
@@ -70,7 +61,6 @@ export async function fetchBurgerKingLocations(bounds) {
     if (!res.ok) throw new Error(`BK fetch failed: ${res.status}`);
     const data = await res.json();
 
-    // Ensure lat/lon is present
     return data
       .filter(bk => bk.lat !== undefined && bk.lon !== undefined)
       .map(bk => ({

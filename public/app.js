@@ -1,10 +1,10 @@
 import { fetchCurrentBalloons } from "./lib/balloons.js";
-import { fetchBurgerKingLocations, createBalloonBKConnections } from "./lib/burgerking.js";
+import {
+  fetchBurgerKingLocations,
+  createBalloonBKConnections
+} from "./lib/burgerking.js";
 
-/* ================================
-   Map setup
-================================ */
-
+/* ================== MAP SETUP ================== */
 const map = new maplibregl.Map({
   container: "map",
   style: "https://demotiles.maplibre.org/style.json",
@@ -12,21 +12,14 @@ const map = new maplibregl.Map({
   zoom: 4
 });
 
-/* ================================
-   State
-================================ */
-
+/* ================== STATE ================== */
 let balloons = [];
 let burgerKings = [];
 let connections = [];
-
 let balloonMarkers = [];
 let burgerKingMarkers = [];
 
-/* ================================
-   Init
-================================ */
-
+/* ================== INIT ================== */
 async function init() {
   map.on("load", async () => {
     console.log("✓ Map loaded");
@@ -42,53 +35,19 @@ async function init() {
   });
 }
 
-console.log("App initialized");
 init();
 
-/* ================================
-   Balloon loading
-================================ */
-
+/* ================== BALLOONS ================== */
 async function loadBalloons() {
-  updateStatus("Loading balloons...");
-
   try {
     const data = await fetchCurrentBalloons();
     balloons = data.slice(0, 100);
-
-    console.log(`🎈 Loaded ${balloons.length} balloons`);
-
     renderBalloons();
     updateConnections();
   } catch (err) {
     console.error(err);
-    updateStatus("❌ Failed to load balloons");
   }
 }
-
-/* ================================
-   Burger King loading (bounded)
-================================ */
-
-async function loadBurgerKingsForView() {
-  const bounds = map.getBounds();
-
-  burgerKings = await fetchBurgerKingLocations({
-    south: bounds.getSouth(),
-    west: bounds.getWest(),
-    north: bounds.getNorth(),
-    east: bounds.getEast()
-  });
-
-  console.log(`🍔 Loaded ${burgerKings.length} Burger Kings`);
-
-  renderBurgerKings();
-  updateConnections();
-}
-
-/* ================================
-   Rendering: Balloons
-================================ */
 
 function renderBalloons() {
   balloonMarkers.forEach(m => m.remove());
@@ -124,9 +83,21 @@ function renderBalloons() {
   });
 }
 
-/* ================================
-   Rendering: Burger Kings
-================================ */
+/* ================== BURGER KINGS ================== */
+async function loadBurgerKingsForView() {
+  if (map.getZoom() < 6) return; // skip if zoomed out too far
+
+  const bounds = map.getBounds();
+  burgerKings = await fetchBurgerKingLocations({
+    south: bounds.getSouth(),
+    west: bounds.getWest(),
+    north: bounds.getNorth(),
+    east: bounds.getEast()
+  });
+
+  renderBurgerKings();
+  updateConnections();
+}
 
 function renderBurgerKings() {
   burgerKingMarkers.forEach(m => m.remove());
@@ -139,7 +110,6 @@ function renderBurgerKings() {
     el.style.background = "black";
     el.style.border = "3px solid red";
     el.style.borderRadius = "50%";
-    el.style.zIndex = "5";
 
     const marker = new maplibregl.Marker(el)
       .setLngLat([bk.lon, bk.lat])
@@ -149,10 +119,7 @@ function renderBurgerKings() {
   });
 }
 
-/* ================================
-   Connections
-================================ */
-
+/* ================== CONNECTIONS ================== */
 function updateConnections() {
   if (!balloons.length || !burgerKings.length) return;
 
@@ -171,9 +138,6 @@ function renderConnections() {
           [conn.balloon.lon, conn.balloon.lat],
           [conn.burgerKing.lon, conn.burgerKing.lat]
         ]
-      },
-      properties: {
-        distance: conn.distance
       }
     }))
   };
@@ -183,11 +147,7 @@ function renderConnections() {
     return;
   }
 
-  map.addSource("balloon-bk-lines", {
-    type: "geojson",
-    data: geojson
-  });
-
+  map.addSource("balloon-bk-lines", { type: "geojson", data: geojson });
   map.addLayer({
     id: "balloon-bk-layer",
     type: "line",
@@ -198,14 +158,4 @@ function renderConnections() {
       "line-opacity": 0.6
     }
   });
-}
-
-/* ================================
-   UI helpers
-================================ */
-
-function updateStatus(text) {
-  const el = document.getElementById("status");
-  if (el) el.textContent = text;
-  console.log("Status:", text);
 }
