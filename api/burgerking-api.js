@@ -15,10 +15,15 @@ router.get("/", async (req, res) => {
     }
 
     const query = `
-      [out:json];
-      node["amenity"="fast_food"]["brand"="Burger King"](global);
-      out center;
+    [out:json][timeout:25];
+    (
+      node["amenity"="fast_food"]["name"="Burger King"];
+      way["amenity"="fast_food"]["name"="Burger King"];
+      relation["amenity"="fast_food"]["name"="Burger King"];
+    );
+    out center;
     `;
+
 
     const response = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
