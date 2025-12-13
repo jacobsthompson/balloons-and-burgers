@@ -11,6 +11,20 @@
   </style>
 </head>
 <body>
+  <div id="ui-panel">
+    <div id="distance-text"></div>
+    <div id="location-text"></div>
+
+    <div class="nav-row">
+      <button id="prev-btn">← View Previous Closest</button>
+      <button id="next-btn">View Next Closest →</button>
+    </div>
+
+    <div class="nav-row">
+      <button id="furthest-btn">View Furthest Balloon</button>
+      <button id="random-btn">View Random Balloon</button>
+    </div>
+  </div>
   <div id="map"></div>
   <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
   <script type="module" src="./app.js"></script>
