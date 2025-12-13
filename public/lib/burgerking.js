@@ -12,10 +12,6 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   return Radius * distance; // Distance in meters
 }
 
-export function toMiles(m) {
-  return (m / 1609.34).toFixed(2);
-}
-
 // Find the closest BK to a balloon
 export function findClosestBurgerKing(balloon, burgerKings) {
   let closest = null;

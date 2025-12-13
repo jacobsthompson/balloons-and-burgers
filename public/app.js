@@ -1,5 +1,5 @@
 import { fetchCurrentBalloons } from './lib/balloons.js';
-import { findClosestBurgerKing, toMiles } from './lib/burgerking.js';
+import { findClosestBurgerKing } from './lib/burgerking.js';
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -134,6 +134,10 @@ function renderMap(balloons, burgerkings) {
 }
 
 //UI
+
+export function toMiles(m) {
+  return (m / 1609.34).toFixed(2);
+}
 
 function updateUI() {
   const c = connections[currentIndex];
