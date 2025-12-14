@@ -60,7 +60,7 @@ function createConnections(balloons, burgerkings) {
   const usedBKs = new Set();
   const connections = balloons.map(balloon => {
     const closestBK = findClosestBurgerKing(balloon, burgerkings);
-
+    console.log(closestBK);
     usedBKs.add(closestBK.id);
 
     return { balloon, burgerKing: closestBK.bk, distance: closestBK.distance };
