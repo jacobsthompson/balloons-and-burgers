@@ -70,7 +70,9 @@ function createConnections(balloons, burgerkings) {
   console.log(usedBKs);
 
   // Only keep BKs that have at least one connection
+
   const filteredBKs = burgerkings.filter(bk => usedBKs.has(bk.id));
+  console.log(filteredBKs);
   connections.sort((a,b) => a.distance - b.distance);
   return { connections, filteredBKs };
 }
