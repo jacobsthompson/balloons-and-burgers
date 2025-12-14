@@ -56,8 +56,8 @@ function createConnections(balloons, burgerkings) {
     const closestBK = findClosestBurgerKing(balloon, burgerkings);
     if (closestBK) {
       usedBKs.add(closestBK.id);
-      return { balloon, burgerKing: closestBK.bk, distance: closestBK.distance };
     }
+    return { balloon, burgerKing: closestBK.bk, distance: closestBK.distance };
   }).filter(Boolean);
 
   // Only keep BKs that have at least one connection
@@ -214,8 +214,8 @@ function fitToConnection(conn) {
 function selectByIndex(index) {
   currentIndex = index;
   selectedConnection = connections[currentIndex];
-  fitToConnection(selectedConnection);
   updateUI();
+  fitToConnection(selectedConnection);
 }
 
 export function toMiles(m) {
