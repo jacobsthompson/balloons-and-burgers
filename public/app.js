@@ -26,7 +26,7 @@ async function init() {
     connections = result.connections;
     burgerkings = result.filteredBKs;
 
-    renderMap(balloons,burgerkings);
+    renderMap(balloons,result.filteredBKs);
 
     currentIndex = 0;
     selectedConnection = connections[currentIndex];
