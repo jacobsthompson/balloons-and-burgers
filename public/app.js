@@ -128,7 +128,7 @@ function renderMap(balloons, burgerkings) {
   });
 
   // Draw connections with lines
-  connections.forEach((conn, index) => {
+  connections.forEach(conn => {
     if (!conn.burgerKing) return;
 
     const lineId = `line-${conn.balloon.id}`;
@@ -140,9 +140,6 @@ function renderMap(balloons, burgerkings) {
       type: 'geojson',
       data: {
         type: 'Feature',
-        properties: {
-          connectionIndex: index
-        },
         geometry: {
           type: 'LineString',
           coordinates: [
@@ -163,21 +160,6 @@ function renderMap(balloons, burgerkings) {
         'line-width': 2
       }
     });
-
-    map.on('click', lineId, (e) => {
-      const idx = e.features[0].properties.connectionIndex;
-      const conn = connections[idx];
-      selectConnection(conn);
-    });
-
-    map.on('mouseenter', lineId, () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', lineId, () => {
-      map.getCanvas().style.cursor = '';
-    });
-
   });
 }
 
