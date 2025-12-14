@@ -18,11 +18,16 @@ export function findClosestBurgerKing(balloon, burgerKings) {
   let minDist = Infinity;
   burgerKings.forEach(bk => {
     const dist = calculateDistance(balloon.lat, balloon.lon, bk.lat, bk.lon);
+
+    if(!Number.isFinite(dist)) return;
+
     if (dist < minDist) {
       minDist = dist;
       closest = { ...bk, distance: dist };
     }
   });
+
+  if (!closest) return;
 
   return { bk: closest, distance: minDist };
 }

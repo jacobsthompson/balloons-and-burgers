@@ -32,7 +32,7 @@ async function init() {
     selectByIndex(currentIndex);
     setupUI();
     updateUI();
-    fitToConnection();
+   fitToConnection(selectedConnection);
 
     // Refresh balloons every 5 min
     setInterval(loadData, 5 * 60 * 1000);
@@ -54,10 +54,10 @@ function createConnections(balloons, burgerkings) {
   const usedBKs = new Set();
   const connections = balloons.map(balloon => {
     const closestBK = findClosestBurgerKing(balloon, burgerkings);
-    const { bk, distance } = closestBK;
     if (closestBK) usedBKs.add(closestBK.id); // track which BKs are used
-    return { balloon, burgerKing: bk, distance };
+    return { balloon, burgerKing: closestBK.bk, distance: closestBK.distance };
   }).filter(Boolean);
+
   // Only keep BKs that have at least one connection
   const filteredBKs = burgerkings.filter(bk => usedBKs.has(bk.id));
   connections.sort((a,b) => a.distance - b.distance);
@@ -76,7 +76,6 @@ function renderMap(balloons, burgerkings) {
   const el = document.createElement('div');
   el.className = "marker marker-balloon";
   el.textContent = "🎈";
-  el.style.fontSize = '24px';
   el.style.cursor = 'pointer';
 
   const marker = new maplibregl.Marker({
@@ -91,6 +90,7 @@ function renderMap(balloons, burgerkings) {
     if (!conn) return;
 
     selectConnection(conn);
+    fitToConnection(selectedConnection);
   });
 
   markers.push(marker);
@@ -101,7 +101,6 @@ function renderMap(balloons, burgerkings) {
   const el = document.createElement('div');
   el.className = "marker marker-bk";
   el.textContent = "🍔";
-  el.style.fontSize = "24px";
 
   const marker = new maplibregl.Marker({
     element: el,
@@ -157,10 +156,12 @@ function selectConnection(conn) {
 
   updateUI();
   updateMarkerOpacity();
-  fitToConnection();
+  fitToConnection(selectedConnection);
 }
 
 function updateMarkerOpacity() {
+  if (!selectedConnection) return;
+  
   markers.forEach(marker => {
     const el = marker.getElement();
 
@@ -187,18 +188,25 @@ function updateMarkerOpacity() {
   });
 }
 
-function fitToConnection() {
-  const bounds = new maplibregl.LngLatBounds();
+function fitToConnection(conn) {
+  if (!conn || !conn.burgerKing) return;
 
-  bounds.extend([selectedConnection.balloon.lon, selectedConnection.balloon.lat]);
-  bounds.extend([selectedConnection.burgerKing.lon, selectedConnection.burgerKing.lat]);
+  const b = conn.balloon;
+  const bk = conn.burgerKing;
+
+  const bounds = new maplibregl.LngLatBounds(
+    [b.lon, b.lat],
+    [bk.lon, bk.lat]
+  );
 
   map.fitBounds(bounds, {
-    padding: 120,
-    maxZoom: 8,
-    duration: 800
+    padding: 120,     // space for UI panel
+    maxZoom: 7,       // prevent zooming in too far
+    duration: 1200,
+    easing: t => t
   });
 }
+
 
 function selectByIndex(index) {
   currentIndex = index;
@@ -226,31 +234,31 @@ function updateUI() {
 function setupUI() {
   document.getElementById("prev-btn").onclick = () => {
     selectByIndex((currentIndex - 1 + connections.length) % connections.length );
-    fitToConnection();
+    fitToConnection(selectedConnection);
     updateUI();
   };
 
   document.getElementById("next-btn").onclick = () => {
     selectByIndex((currentIndex + 1) % connections.length);
-    fitToConnection();
+    fitToConnection(selectedConnection);
     updateUI();
   };
 
   document.getElementById("closest-btn").onclick = () => {
     selectByIndex(0);
-    fitToConnection();
+    fitToConnection(selectedConnection);
     updateUI();
   };
 
   document.getElementById("furthest-btn").onclick = () => {
     selectByIndex(connections.length - 1);
-    fitToConnection();
+    fitToConnection(selectedConnection);
     updateUI();
   };
 
   document.getElementById("random-btn").onclick = () => {
     selectByIndex(Math.floor(Math.random() * connections.length));
-    fitToConnection();
+    fitToConnection(selectedConnection);
     updateUI();
   };
 }
