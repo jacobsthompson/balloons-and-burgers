@@ -27,7 +27,7 @@ export function findClosestBurgerKing(balloon, burgerKings) {
     }
   });
 
-  if (!closest) return;
+  if (!closest) return null;
 
   return { bk: closest, distance: minDist };
 }

@@ -54,9 +54,14 @@ function createConnections(balloons, burgerkings) {
   const usedBKs = new Set();
   const connections = balloons.map(balloon => {
     const closestBK = findClosestBurgerKing(balloon, burgerkings);
-    if (closestBK) {
-      usedBKs.add(closestBK.id);
+
+
+    if (!closestBK) {
+      return { balloon, burgerKing: null, distance: Infinity };
     }
+
+    usedBKs.add(closestBK.id);
+
     return { balloon, burgerKing: closestBK.bk, distance: closestBK.distance };
   }).filter(Boolean);
 
