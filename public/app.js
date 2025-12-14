@@ -106,6 +106,7 @@ function renderMap(balloons, burgerkings) {
   const el = document.createElement('div');
   el.className = "marker marker-bk";
   el.textContent = "🍔";
+  el.style.cursor = 'pointer';
 
   const marker = new maplibregl.Marker({
     element: el,
@@ -139,6 +140,9 @@ function renderMap(balloons, burgerkings) {
       type: 'geojson',
       data: {
         type: 'Feature',
+        properties: {
+          connectionIndex: index
+        },
         geometry: {
           type: 'LineString',
           coordinates: [
@@ -159,6 +163,21 @@ function renderMap(balloons, burgerkings) {
         'line-width': 2
       }
     });
+
+    map.on('click', lineId, (e) => {
+      const idx = e.features[0].properties.connectionIndex;
+      const conn = connections[idx];
+      selectConnection(conn);
+    });
+
+    map.on('mouseenter', lineId, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.on('mouseleave', lineId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+
   });
 }
 
@@ -189,7 +208,7 @@ function updateMarkerOpacity() {
       marker.getLngLat().lat === selectedConnection.burgerKing.lat &&
       marker.getLngLat().lng === selectedConnection.burgerKing.lon;
 
-    el.style.opacity = (isBalloon || isBK) ? "1" : "0.4";
+    el.style.opacity = (isBalloon || isBK) ? "1" : "0.2";
   });
 
   connections.forEach(conn => {
@@ -199,7 +218,7 @@ function updateMarkerOpacity() {
     map.setPaintProperty(
       lineId,
       'line-opacity',
-      conn.balloon.id === selectedConnection.balloon.id ? 1 : 0.4
+      conn.balloon.id === selectedConnection.balloon.id ? 1 : 0.2
     );
   });
 }
@@ -227,7 +246,9 @@ function fitToConnection(conn) {
 function selectByIndex(index) {
   currentIndex = index;
   selectedConnection = connections[currentIndex];
+
   updateUI();
+  updateMarkerOpacity();
   fitToConnection(selectedConnection);
 }
 
