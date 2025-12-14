@@ -27,7 +27,7 @@ async function init() {
     connections = result.connections;
     console.log(burgerkings);
     activeBKS = result.filteredBKs;
-    console.log(burgerkings);
+    console.log(activeBKS);
 
     renderMap(balloons,activeBKS);
 
