@@ -32,7 +32,7 @@ async function init() {
     selectByIndex(currentIndex);
     setupUI();
     updateUI();
-   fitToConnection(selectedConnection);
+    fitToConnection(selectedConnection);
 
     // Refresh balloons every 5 min
     setInterval(loadData, 5 * 60 * 1000);
@@ -99,7 +99,7 @@ function renderMap(balloons, burgerkings) {
 });
 
   // Render Burger Kings 🍔 (only those used)
-  filteredBKs.forEach(bk => {
+  burgerkings.forEach(bk => {
   const el = document.createElement('div');
   el.className = "marker marker-bk";
   el.textContent = "🍔";
