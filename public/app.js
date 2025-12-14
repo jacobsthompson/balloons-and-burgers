@@ -89,8 +89,9 @@ function renderMap(balloons, burgerkings) {
 
   el.addEventListener('click', () => {
     const conn = connections.find(c => c.balloon.id === balloon.id);
+    console.log("Clicked");
     if (!conn) return;
-
+    console.log("Clicked 2");
     selectConnection(conn);
     fitToConnection(selectedConnection);
   });
