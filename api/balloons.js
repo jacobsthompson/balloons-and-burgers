@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const url = `https://a.windbornesystems.com/treasure/${String(n).padStart(2, "0")}.json`;
+    const url = `https://a.windbornesystems.com/treasure/${String(n).padStart(2, "1")}.json`;
     console.log(`Fetching: ${url}`);
     
     const response = await fetch(url);
