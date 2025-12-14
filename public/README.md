@@ -1,6 +1,6 @@
 # The Closest Burger Kings to WindBorne System Weather Balloons
 
-![Alt text](public/lib/windborne-bk.svg)
+![Alt text](lib/windborne-bk.svg)
 
 Have you ever wondered what the closest Burger King to every WindBorne Solutions Weather Balloon is? Well wonder no longer! 
 With WindBorne x Burger King, you can visualize the locations of every balloon connected to its closest Burger King.
