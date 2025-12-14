@@ -211,8 +211,8 @@ function fitToConnection(conn) {
 function selectByIndex(index) {
   currentIndex = index;
   selectedConnection = connections[currentIndex];
-  updateUI();
   fitToConnection(selectedConnection);
+  updateUI();
 }
 
 export function toMiles(m) {
@@ -234,6 +234,7 @@ function updateUI() {
 function setupUI() {
   document.getElementById("prev-btn").onclick = () => {
     selectByIndex((currentIndex - 1 + connections.length) % connections.length );
+    console.log("Pressed Prev Button")
     fitToConnection(selectedConnection);
     updateUI();
   };
